@@ -1,3 +1,8 @@
+/////////////////////////////////////////////////////
+//          ROOT based figure drawing uility       //
+//  Author: Seunghwan Lee (zxzfdsa@gmail.com)      //
+/////////////////////////////////////////////////////
+
 #ifndef DrawingUtil_hh
 #define DrawingUtil_hh
 
@@ -98,6 +103,18 @@ class DrawingUtil
         void Init();
         void Clear(TString opt="");
 
+        // ************ Drawing Options ******************
+        // Global drawing option can be setted in DrawHist("option") or related functions. These option will be applied in all pads
+        // If you want to set the option in specific pad, use the SetDrawOption() function.
+        // 
+        // n, norm : hiostogram normalization
+        // xlog, ylog, zlog : log drawing 
+        // ratio : ratio 0 to 1 
+        // shift : shift point of graph for each graphs in same canvas 
+        // yaxis : scale of draw range ex) yaxis=2.5 -> 2.5 times maximum hist bin contents
+        // xaxis1, 2 : range of x axis, low range = xaxis1, high range = xaxis2, ex) xaxis1=10 
+        // **********************************************
+
         void DrawHist(TString opt="");
         void DrawHistWithRatio(int baseIdx, TString opt="", TString yTitle="");
         void DrawHist2D(TString opt="");
@@ -105,7 +122,7 @@ class DrawingUtil
 
         void SaveFigure(TString name);
 
-        void SetCanvas(int divideNum, TString name="", double size=700.);
+        void SetCanvas(int divideNum, int xPadNum=-1, TString name="", double size=700.);
         void SetXLabelName(int i, TString name);
 
         void SetPalette(int idx){mColorPaletteIdx = idx;}
@@ -128,9 +145,13 @@ class DrawingUtil
 
         void SetText(bool isPersistant, TString text, int cIdx=-1, double x=-1, double y=-1, double size=-1, int font=-1);
         void SetLegend(bool isPersistant, TObject* obj, TString text, int cIdx=-1, TString opt="");
+        void SetDrawOption(bool isPersistant, TString opt, int cIdx=-1);
 
         int GetColor(int idx);
         int GetMarker(int idx);
+
+        void NormalizedTH1D(TH1D* hist, double scale=-1.);
+
     private:
         void InitHist(int& cNum);
         void InitHist2D(int& cNum);
@@ -139,21 +160,14 @@ class DrawingUtil
         void DrawText(int cNum);
         void DrawLegend(int cNum);
 
-        // ************ Drawing Options ******************
-        // n, norm : hiostogram normalization
-        // xlog, ylog, zlog : log drawing 
-        // ratio : ratio 0 to 1 
-        // shift : shift point of graph for each graphs in same canvas 
-        // **********************************************
         bool InitDrawOption(TString opt);
-        bool GetDrawFlag(TString opt);
-        TString GetDrawValue(TString opt);
+        bool GetDrawFlag(TString opt, int cIdx=-1);
+        TString GetDrawValue(TString opt, int cIdx=-1);
         
         bool GetTitle(TString inputTitle, TString& name, TString& xTitle, TString& yTitle);
-        void NormalizedTH1D(TH1D* hist, double scale=-1.);
 
         TCanvas* mCanvas = nullptr;
-        vector<TString> mDrawOptArr;
+        vector<pair<int, TString>> mDrawOptArr;
 
         vector<InfoHist> mHist;
         vector<InfoHist2D> mHist2D;
