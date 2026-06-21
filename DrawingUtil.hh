@@ -167,7 +167,7 @@ class DrawingUtil
         bool GetTitle(TString inputTitle, TString& name, TString& xTitle, TString& yTitle);
 
         TCanvas* mCanvas = nullptr;
-        vector<pair<int, TString>> mDrawOptArr;
+        vector<pair<int, TString> > mDrawOptArr;
 
         vector<InfoHist> mHist;
         vector<InfoHist2D> mHist2D;
