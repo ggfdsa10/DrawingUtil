@@ -10,6 +10,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <tuple>
 
 #include "TSystem.h"
 #include "TDirectory.h"
@@ -101,18 +102,20 @@ class DrawingUtil
         ~DrawingUtil();
 
         void Init();
-        void Clear(TString opt="");
+        void Clear(TString opt=""); // [opt = all, text, leg]
 
         // ************ Drawing Options ******************
         // Global drawing option can be setted in DrawHist("option") or related functions. These option will be applied in all pads
         // If you want to set the option in specific pad, use the SetDrawOption() function.
-        // 
-        // n, norm : hiostogram normalization
+        // --- Avaliable option list ---
+        // n, norm          : hiostogram normalization
         // xlog, ylog, zlog : log drawing 
-        // ratio : ratio 0 to 1 
-        // shift : shift point of graph for each graphs in same canvas 
-        // yaxis : scale of draw range ex) yaxis=2.5 -> 2.5 times maximum hist bin contents
-        // xaxis1, 2 : range of x axis, low range = xaxis1, high range = xaxis2, ex) xaxis1=10 
+        // ratio            : ratio 0 to 1 
+        // shift            : shift point of graph for each graphs in same canvas 
+        // yaxis            : scale of draw range ex) yaxis=2.5 -> 2.5 times maximum hist bin contents
+        // xaxis1, 2        : range of x axis, low range = xaxis1, high range = xaxis2, ex) xaxis1=10 
+        // draw             : drawing option for ROOT, it can applied per objects
+        // drawsub          : sub pad drawing option for ROOT, it can applied per objects
         // **********************************************
 
         void DrawHist(TString opt="");
@@ -135,6 +138,8 @@ class DrawingUtil
         void SetTH2D(TH2D* hist, TString title="");
         TH2D* GetTH2D(int cIdx);
 
+        TCanvas* GetCanvas(){return mCanvas;}
+
         void SetGraph(int num, double* x, double* y, TString title="", int cIdx=-1, int colorIdx=-1, int markerIdx=-1);
         void SetGraphRatio(int num, double* x, double* y, double* yBase, TString title="", int cIdx=-1, int colorIdx=-1, int markerIdx=-1);
         void SetGraphAsymRatio(int num, double* x, double* y, double* yBase, TString title="", int cIdx=-1, int colorIdx=-1, int markerIdx=-1);
@@ -145,12 +150,10 @@ class DrawingUtil
 
         void SetText(bool isPersistant, TString text, int cIdx=-1, double x=-1, double y=-1, double size=-1, int font=-1);
         void SetLegend(bool isPersistant, TObject* obj, TString text, int cIdx=-1, TString opt="");
-        void SetDrawOption(bool isPersistant, TString opt, int cIdx=-1);
+        void SetDrawOption(bool isPersistant, TString opt, int cIdx=-1, int objIdx=-1);
 
         int GetColor(int idx);
         int GetMarker(int idx);
-
-        void NormalizedTH1D(TH1D* hist, double scale=-1.);
 
     private:
         void InitHist(int& cNum);
@@ -161,13 +164,13 @@ class DrawingUtil
         void DrawLegend(int cNum);
 
         bool InitDrawOption(TString opt);
-        bool GetDrawFlag(TString opt, int cIdx=-1);
-        TString GetDrawValue(TString opt, int cIdx=-1);
+        bool GetDrawFlag(TString opt, int cIdx=-1, int objIdx=-1);
+        TString GetDrawValue(TString opt, int cIdx=-1, int ojbIdx=-1);
         
         bool GetTitle(TString inputTitle, TString& name, TString& xTitle, TString& yTitle);
 
         TCanvas* mCanvas = nullptr;
-        vector<pair<int, TString> > mDrawOptArr;
+        vector<tuple<int, int, TString> > mDrawOptArr;
 
         vector<InfoHist> mHist;
         vector<InfoHist2D> mHist2D;

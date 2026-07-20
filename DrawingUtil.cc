@@ -101,7 +101,8 @@ void DrawingUtil::DrawHist(TString opt)
         }
         for(int i=0; i<histNum; i++){
             if(mHist[i].base.cIdx == c && mHist[i].base.objIdx != -1){
-                mHist[i].hist -> Draw("same");
+                TString opt = "same, "+ GetDrawValue("draw") + ", " + GetDrawValue("draw", c) + ", " + GetDrawValue("draw", c, mHist[i].base.objIdx);
+                mHist[i].hist -> Draw(opt);
             }
         }
         DrawText(c);
@@ -176,8 +177,9 @@ void DrawingUtil::DrawHistWithRatio(int baseIdx, TString opt, TString yTitle)
         }
         for(int i=0; i<histNum; i++){
             if(mHist[i].base.cIdx == c && mHist[i].base.objIdx != -1){
+                TString opt = "same, "+ GetDrawValue("draw") + ", " + GetDrawValue("draw", c) + ", " + GetDrawValue("draw", c, mHist[i].base.objIdx);
                 mHist[i].hist -> Draw("same");
-
+                
                 if(mHist[i].base.objIdx == baseIdx){
                     mHist[i].hist -> SetLineWidth(2);
                     baseRatioHist = (TH1D*)mHist[i].hist -> Clone(Form("%s_RatioBaseHist_c%i", mHist[i].hist, c));
@@ -221,7 +223,8 @@ void DrawingUtil::DrawHistWithRatio(int baseIdx, TString opt, TString yTitle)
                 ratioHistArr[i] -> SetBinContent(b+1, ratio);
             }
             ratioHistArr[i] -> SetMarkerColor(ratioHistArr[i]->GetLineColor());
-            ratioHistArr[i] -> Draw("same");
+            TString opt = "same, "+ GetDrawValue("drawsub") + ", " + GetDrawValue("drawsub", c) + ", " + GetDrawValue("drawsub", c, ratioHistNum+1);
+            ratioHistArr[i] -> Draw(opt);
         }
 
         double nBinsX = bkgRatioHist -> GetNbinsX();
@@ -273,7 +276,10 @@ void DrawingUtil::DrawHist2D(TString opt)
         mHist2D[c].hist -> GetXaxis()->SetTitleSize(0.045);
         mHist2D[c].hist -> GetYaxis()->SetTitleOffset(1.6);
         mHist2D[c].hist -> GetXaxis()->SetTitleOffset(1.);
-        mHist2D[c].hist -> Draw("colz");
+
+        TString opt = "colz";
+        if(GetDrawFlag("draw") || GetDrawValue("draw", c)){opt = "colz "+ GetDrawValue("draw") + ", " + GetDrawValue("draw", c);}
+        mHist2D[c].hist -> Draw(opt);
 
         DrawText(c);
     }
@@ -306,6 +312,7 @@ void DrawingUtil::DrawGraph(TString opt)
             }
             for(int i=0; i<graphNum; i++){
                 if(mGraph[i].base.cIdx == c && mGraph[i].base.objIdx != -1){
+                    TString opt = "same, p, "+ GetDrawValue("draw") + ", " + GetDrawValue("draw", c) + ", " + GetDrawValue("draw", c, mHist[i].base.objIdx);
                     mGraph[i].graph -> Draw("same, p");
                 }
             }
@@ -614,7 +621,7 @@ void DrawingUtil::SetLegend(bool isPersistant, TObject* obj, TString text, int c
     mLegend.push_back(textInfo);
 }
 
-void DrawingUtil::SetDrawOption(bool isPersistant, TString opt, int cIdx)
+void DrawingUtil::SetDrawOption(bool isPersistant, TString opt, int cIdx, int objIdx)
 {
     opt.ToUpper();
     opt.ReplaceAll(",", " ");
@@ -623,8 +630,8 @@ void DrawingUtil::SetDrawOption(bool isPersistant, TString opt, int cIdx)
     for(int i=0; i<tokens->GetEntries(); i++){
         TString option = ((TObjString *)tokens->At(i))->GetString();
         if(isPersistant){cIdx = -1;}
-        if(GetDrawFlag(opt, cIdx)){continue;}
-        mDrawOptArr.push_back(make_pair(cIdx, opt));
+        if(GetDrawFlag(opt, cIdx, objIdx)){continue;}
+        mDrawOptArr.push_back(make_tuple(cIdx, objIdx, opt));
     }
 }
 
@@ -702,9 +709,9 @@ void DrawingUtil::InitHist(int& cNum)
         for(int i=0; i<histNum; i++){
             if(mHist[i].base.cIdx == c){
                 if(GetDrawFlag("norm") || GetDrawFlag("norm", c)){
-                    NormalizedTH1D(mHist[i].hist);
+                    double integral = mHist[i].hist->Integral();
+                    mHist[i].hist -> Scale(1.0/integral, "width");
                 }
-
                 double nBinsX = mHist[i].hist -> GetNbinsX();
                 double binLower = mHist[i].hist -> GetBinLowEdge(1);
                 double binHigher = mHist[i].hist -> GetBinLowEdge(nBinsX) + mHist[i].hist->GetBinWidth(nBinsX);
@@ -726,6 +733,7 @@ void DrawingUtil::InitHist(int& cNum)
                 }
             }
         }
+
         histInfo.hist = new TH1D(Form("base_%s_TH1D_c%i", histName.Data(), c), "", bins, minBin, maxBin);
         histInfo.hist -> SetStats(0);
 
@@ -736,7 +744,7 @@ void DrawingUtil::InitHist(int& cNum)
             histInfo.hist->GetYaxis()->SetRangeUser(0., 1.5);
         }
         if(GetDrawFlag("yaxis") || GetDrawFlag("yaxis", c)){
-            TString yaxisScale = (GetDrawFlag("yaxis"))? GetDrawValue("YAXIS") : (GetDrawFlag("yaxis", c)? GetDrawValue("YAXIS"): "1.4");
+            TString yaxisScale = (GetDrawFlag("yaxis"))? GetDrawValue("YAXIS") : (GetDrawFlag("yaxis", c)? GetDrawValue("YAXIS", c): "1.4");
             double scale = yaxisScale.Atof();
             histInfo.hist->GetYaxis()->SetRangeUser(0.00011, maxHeight*scale);
         }
@@ -752,8 +760,6 @@ void DrawingUtil::InitHist(int& cNum)
             
             TString xaxis1 = GetDrawValue("XAXIS1", c);
             TString xaxis2 = GetDrawValue("XAXIS2", c);
-
-            cout << " c " << c << " | " << xaxis1 << " | " << xaxis2 << endl;
             double xRange1 = (GetDrawFlag("xaxis1", c))? xaxis1.Atof() : minBin;
             double xRange2 = (GetDrawFlag("xaxis2", c))? xaxis2.Atof() : maxBin;
 
@@ -1016,18 +1022,19 @@ bool DrawingUtil::InitDrawOption(TString opt)
     for(int i=0; i<tokens->GetEntries(); i++){
         TString option = ((TObjString *)tokens->At(i))->GetString();
         if(GetDrawFlag(opt)){continue;}
-        mDrawOptArr.push_back(make_pair(-1, option));
+        mDrawOptArr.push_back(make_tuple(-1, -1, option));
     }
     return true;
 }
 
-bool DrawingUtil::GetDrawFlag(TString opt, int cIdx)
+bool DrawingUtil::GetDrawFlag(TString opt, int cIdx, int objIdx)
 {   
     opt.ToUpper();
     int num = mDrawOptArr.size();
     for(int i=0; i<num; i++){
-        TString option = mDrawOptArr[i].second;
-        int canvasIdx = mDrawOptArr[i].first;
+        TString option = get<2>(mDrawOptArr[i]);
+        int canvasIdx = get<0>(mDrawOptArr[i]);
+        int objectIdx = get<1>(mDrawOptArr[i]);
         if(canvasIdx != cIdx){continue;}
 
         if(opt == "N" || opt == "NORM"){
@@ -1041,17 +1048,22 @@ bool DrawingUtil::GetDrawFlag(TString opt, int cIdx)
         if(opt == "YAXIS" && option.Index("YAXIS") != -1){return true;}
         if(opt == "XAXIS1" && option.Index("XAXIS1") != -1){return true;}
         if(opt == "XAXIS2" && option.Index("XAXIS2") != -1){return true;}
+
+        if(objIdx !=objectIdx){continue;}
+        if(opt == "DRAW" && option.Index("DRAW") != -1){return true;}
+        if(opt == "DRAWSUB" && option.Index("DRAWSUB") != -1){return true;}
     }
     return false;
 }
 
-TString DrawingUtil::GetDrawValue(TString opt, int cIdx)
+TString DrawingUtil::GetDrawValue(TString opt, int cIdx, int objIdx)
 {
     opt.ToUpper();
     int num = mDrawOptArr.size();
     for(int i=0; i<num; i++){
-        TString option = mDrawOptArr[i].second;
-        int canvasIdx = mDrawOptArr[i].first;
+        TString option = get<2>(mDrawOptArr[i]);
+        int canvasIdx = get<0>(mDrawOptArr[i]);
+        int objectIdx = get<1>(mDrawOptArr[i]);
         if(canvasIdx != cIdx){continue;}
 
         option.ToUpper();
@@ -1064,6 +1076,16 @@ TString DrawingUtil::GetDrawValue(TString opt, int cIdx)
             return ((TObjString *)tokens->At(tokens->GetEntries()-1))->GetString();
         }
         if(opt == "XAXIS2" && option.Index("XAXIS2") != -1){
+            TObjArray *tokens = option.Tokenize("=");
+            return ((TObjString *)tokens->At(tokens->GetEntries()-1))->GetString();
+        }
+
+        if(objIdx !=objectIdx){continue;}
+        if(opt == "DRAW" && option.Index("DRAW") != -1){
+            TObjArray *tokens = option.Tokenize("=");
+            return ((TObjString *)tokens->At(tokens->GetEntries()-1))->GetString();
+        }
+        if(opt == "DRAWSUB" && option.Index("DRAWSUB") != -1){
             TObjArray *tokens = option.Tokenize("=");
             return ((TObjString *)tokens->At(tokens->GetEntries()-1))->GetString();
         }
@@ -1097,16 +1119,4 @@ bool DrawingUtil::GetTitle(TString inputTitle, TString& name, TString& xTitle, T
         return 1;
     }
     return 0;
-}
-
-void DrawingUtil::NormalizedTH1D(TH1D* hist, double scale)
-{
-    double entries = hist -> Integral();
-    if(entries < 1){return;}
-    if(scale > 0.){entries = scale;}
-    for(int bin=0; bin<hist->GetNbinsX(); bin++){
-        double entry = hist->GetBinContent(bin+1);
-        double binWidth = hist->GetXaxis()->GetBinWidth(bin+1);
-        hist->SetBinContent(bin+1, entry/binWidth/entries);
-    }
 }
